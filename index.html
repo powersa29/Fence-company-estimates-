@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FenceEstimate Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside id="sidebar">
+
+        <div class="sidebar-header">
+            <div class="brand">
+                <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="3" height="18" rx="1"/>
+                    <rect x="10" y="3" width="3" height="18" rx="1"/>
+                    <rect x="18" y="3" width="3" height="18" rx="1"/>
+                    <line x1="5" y1="8" x2="10" y2="8"/>
+                    <line x1="13" y1="8" x2="18" y2="8"/>
+                    <line x1="5" y1="14" x2="10" y2="14"/>
+                    <line x1="13" y1="14" x2="18" y2="14"/>
+                </svg>
+                <span class="brand-name">FenceEstimate Pro</span>
+            </div>
+            <button id="sidebar-toggle" class="sidebar-toggle" title="Collapse sidebar" aria-label="Collapse sidebar">&#8249;</button>
+        </div>
+
+        <div class="sidebar-body">
+
+            <!-- Company Name -->
+            <div class="panel">
+                <input type="text" id="company-name" class="company-name-input"
+                       placeholder="Your Company Name" maxlength="60" autocomplete="off" />
+            </div>
+
+            <!-- Address Search -->
+            <div class="panel">
+                <h3 class="panel-title">Property Address</h3>
+                <div class="search-row">
+                    <input type="text" id="address-input" class="address-input"
+                           placeholder="Enter property address..." autocomplete="off" />
+                    <button id="btn-locate" class="btn-locate" title="Use my location" aria-label="Use my location">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="4"/>
+                            <line x1="12" y1="2" x2="12" y2="6"/>
+                            <line x1="12" y1="18" x2="12" y2="22"/>
+                            <line x1="2" y1="12" x2="6" y2="12"/>
+                            <line x1="18" y1="12" x2="22" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drawing Tools -->
+            <div class="panel">
+                <h3 class="panel-title">Drawing Tools</h3>
+                <div class="tool-grid">
+                    <button id="btn-draw" class="tool-btn" data-mode="draw">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 21l18-18M3 21h6M3 21v-6"/>
+                            <circle cx="18" cy="6" r="2"/>
+                        </svg>
+                        Draw Fence
+                    </button>
+                    <button id="btn-gate" class="tool-btn" data-mode="gate">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="6" width="9" height="14" rx="1"/>
+                            <rect x="13" y="6" width="9" height="14" rx="1"/>
+                            <circle cx="11" cy="13" r="1" fill="currentColor"/>
+                        </svg>
+                        Add Gate
+                    </button>
+                    <button id="btn-undo" class="tool-btn tool-btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 10h10a7 7 0 0 1 0 14H9"/>
+                            <polyline points="3 4 3 10 9 10"/>
+                        </svg>
+                        Undo
+                    </button>
+                    <button id="btn-clear" class="tool-btn tool-btn-danger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14H6L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
+                        </svg>
+                        Clear All
+                    </button>
+                </div>
+                <div id="mode-hint" class="mode-hint">
+                    Click "Draw Fence" then click points on the map to trace your fence line. Double-click to finish a section.
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="panel">
+                <h3 class="panel-title">Fence Type &amp; Pricing</h3>
+                <div class="form-group">
+                    <label for="fence-type">Fence Type</label>
+                    <select id="fence-type">
+                        <option value="wood">Wood Privacy (6 ft)</option>
+                        <option value="vinyl">Vinyl Privacy (6 ft)</option>
+                        <option value="chain-link">Chain Link</option>
+                        <option value="aluminum">Aluminum Ornamental</option>
+                        <option value="split-rail">Split Rail (3-rail)</option>
+                        <option value="custom">Custom / Other</option>
+                    </select>
+                </div>
+                <div class="price-grid">
+                    <div class="form-group">
+                        <label for="price-per-foot">Per Linear Foot</label>
+                        <div class="input-addon input-addon-prefix">
+                            <span>$</span>
+                            <input type="number" id="price-per-foot" min="0" step="0.01" value="45" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="price-single-gate">Single Gate (installed)</label>
+                        <div class="input-addon input-addon-prefix">
+                            <span>$</span>
+                            <input type="number" id="price-single-gate" min="0" step="1" value="350" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="price-double-gate">Double Gate (installed)</label>
+                        <div class="input-addon input-addon-prefix">
+                            <span>$</span>
+                            <input type="number" id="price-double-gate" min="0" step="1" value="650" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tax-rate">Tax Rate</label>
+                        <div class="input-addon input-addon-suffix">
+                            <input type="number" id="tax-rate" min="0" max="30" step="0.1" value="0" />
+                            <span>%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="notes-input">Notes (printed on estimate)</label>
+                    <textarea id="notes-input" rows="2" placeholder="e.g. Includes removal of existing fence..."></textarea>
+                </div>
+            </div>
+
+            <!-- Estimate Summary -->
+            <div class="panel estimate-panel">
+                <h3 class="panel-title">Estimate Summary</h3>
+
+                <div id="segments-list" class="items-list">
+                    <div class="empty-state">No fence sections yet — draw on the map to start</div>
+                </div>
+
+                <div id="gates-list" class="items-list"></div>
+
+                <div class="divider"></div>
+
+                <div class="totals-table">
+                    <div class="totals-row">
+                        <span>Total Linear Feet</span>
+                        <strong id="total-feet">0 ft</strong>
+                    </div>
+                    <div class="totals-row">
+                        <span>Fence Cost</span>
+                        <strong id="fence-cost">$0.00</strong>
+                    </div>
+                    <div class="totals-row" id="gate-cost-row" style="display:none">
+                        <span>Gate Cost</span>
+                        <strong id="gate-cost">$0.00</strong>
+                    </div>
+                    <div class="totals-row totals-row-subtotal">
+                        <span>Subtotal</span>
+                        <strong id="subtotal">$0.00</strong>
+                    </div>
+                    <div class="totals-row" id="tax-row" style="display:none">
+                        <span>Tax (<span id="tax-rate-label">0</span>%)</span>
+                        <strong id="tax-amount">$0.00</strong>
+                    </div>
+                    <div class="totals-row totals-row-grand">
+                        <span>TOTAL ESTIMATE</span>
+                        <strong id="grand-total">$0.00</strong>
+                    </div>
+                </div>
+
+                <button id="btn-print" class="btn-primary" disabled>
+                    Print / Save Estimate
+                </button>
+            </div>
+
+        </div><!-- /.sidebar-body -->
+    </aside>
+
+    <!-- ===== MAP ===== -->
+    <main id="map-area">
+        <div id="map"></div>
+
+        <!-- Map controls overlay -->
+        <div id="map-controls">
+            <button id="btn-map-type" class="map-ctrl-btn" title="Toggle satellite/map view">Satellite</button>
+        </div>
+
+        <!-- Drawing status bar -->
+        <div id="drawing-bar" class="drawing-bar hidden">
+            <span id="drawing-bar-text">Click to add fence points &mdash; double-click to finish section</span>
+            <button id="btn-finish-section" class="btn-finish">Finish Section</button>
+            <button id="btn-cancel-drawing" class="btn-cancel-draw">Cancel</button>
+        </div>
+
+        <!-- API key error -->
+        <div id="api-error" class="api-error hidden">
+            <div class="api-error-box">
+                <h2>Google Maps API Key Required</h2>
+                <p>Open <code>index.html</code> and replace <code>YOUR_GOOGLE_MAPS_API_KEY</code> with your key.</p>
+                <ol>
+                    <li>Go to <strong>console.cloud.google.com</strong></li>
+                    <li>Create/select a project &rarr; enable <strong>Maps JavaScript API</strong> and <strong>Places API</strong></li>
+                    <li>Create an API key under Credentials</li>
+                    <li>Paste the key in the <code>&lt;script&gt;</code> tag at the bottom of <code>index.html</code></li>
+                </ol>
+            </div>
+        </div>
+    </main>
+
+</div><!-- /#app -->
+
+<!-- ===== GATE MODAL ===== -->
+<div id="gate-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gate-modal-title">
+    <div class="modal-box">
+        <h3 id="gate-modal-title">Select Gate Type</h3>
+        <div class="gate-options">
+            <button class="gate-option" data-type="single">
+                <svg viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="32" height="52" rx="2"/>
+                    <line x1="4" y1="14" x2="36" y2="14"/>
+                    <line x1="4" y1="30" x2="36" y2="30"/>
+                    <line x1="4" y1="46" x2="36" y2="46"/>
+                    <circle cx="32" cy="30" r="2" fill="currentColor"/>
+                </svg>
+                <span class="gate-opt-label">Single Gate</span>
+                <span class="gate-opt-width">~4 ft wide</span>
+                <span class="gate-opt-price" id="modal-single-price">$350</span>
+            </button>
+            <button class="gate-option" data-type="double">
+                <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="25" height="52" rx="2"/>
+                    <rect x="33" y="4" width="25" height="52" rx="2"/>
+                    <line x1="2" y1="14" x2="27" y2="14"/>
+                    <line x1="33" y1="14" x2="58" y2="14"/>
+                    <line x1="2" y1="30" x2="27" y2="30"/>
+                    <line x1="33" y1="30" x2="58" y2="30"/>
+                    <line x1="2" y1="46" x2="27" y2="46"/>
+                    <line x1="33" y1="46" x2="58" y2="46"/>
+                    <circle cx="25" cy="30" r="2" fill="currentColor"/>
+                    <circle cx="35" cy="30" r="2" fill="currentColor"/>
+                </svg>
+                <span class="gate-opt-label">Double Gate</span>
+                <span class="gate-opt-width">~10 ft wide</span>
+                <span class="gate-opt-price" id="modal-double-price">$650</span>
+            </button>
+        </div>
+        <button id="modal-cancel" class="btn-modal-cancel">Cancel</button>
+    </div>
+</div>
+
+<!-- ===== PRINT TEMPLATE ===== -->
+<div id="print-template" class="print-only">
+    <div class="pt-header">
+        <div>
+            <h1 id="pt-company-name" class="pt-company"></h1>
+            <p class="pt-subtitle">Fence Installation Estimate</p>
+        </div>
+        <table class="pt-meta">
+            <tr><td>Date:</td><td id="pt-date"></td></tr>
+            <tr><td>Property:</td><td id="pt-address"></td></tr>
+            <tr><td>Estimate valid:</td><td>30 days from date above</td></tr>
+        </table>
+    </div>
+
+    <table class="pt-items">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Measurement</th>
+                <th>Unit Price</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody id="pt-items-body"></tbody>
+        <tfoot>
+            <tr><td colspan="3">Subtotal</td><td id="pt-subtotal"></td></tr>
+            <tr id="pt-tax-row"><td colspan="3" id="pt-tax-label">Tax</td><td id="pt-tax"></td></tr>
+            <tr class="pt-grand-total"><td colspan="3">TOTAL ESTIMATE</td><td id="pt-total"></td></tr>
+        </tfoot>
+    </table>
+
+    <div id="pt-notes-section" class="pt-notes">
+        <strong>Notes:</strong>
+        <p id="pt-notes-text"></p>
+    </div>
+
+    <ul class="pt-standard-notes">
+        <li>Measurements taken via satellite imagery; final field measurements may vary slightly.</li>
+        <li>Price includes all materials and labor unless separately noted.</li>
+        <li>Underground utilities must be located and marked prior to installation.</li>
+        <li>Customer responsible for any required permits unless otherwise agreed.</li>
+    </ul>
+
+    <div class="pt-signatures">
+        <div class="pt-sig-block">
+            <p>Customer Approval</p>
+            <div class="pt-sig-line"></div>
+            <p>Signature &amp; Date</p>
+        </div>
+        <div class="pt-sig-block">
+            <p>Company Representative</p>
+            <div class="pt-sig-line"></div>
+            <p>Signature &amp; Date</p>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<!--
+    SETUP: Replace YOUR_GOOGLE_MAPS_API_KEY below with your actual key.
+    Required APIs: Maps JavaScript API, Places API
+    Get a key at: console.cloud.google.com
+-->
+<script
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry,drawing&callback=initMap&loading=async"
+    async defer>
+</script>
+
+</body>
+</html>
