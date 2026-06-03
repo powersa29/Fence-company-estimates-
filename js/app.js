@@ -252,17 +252,19 @@ function onMapTapForDraw(event) {
     const latLng = event.latLng;
     state.drawingPoints.push(latLng);
 
+    const lineColor = FENCE_CONFIG.fenceLineColor || '#f97316';
+
     // Small dot marker at tap point
     const dot = new google.maps.Marker({
         position:  latLng,
         map:       state.map,
         icon: {
             path:         google.maps.SymbolPath.CIRCLE,
-            fillColor:    FENCE_CONFIG.primaryColor || '#16a34a',
+            fillColor:    lineColor,
             fillOpacity:  1,
             strokeColor:  '#ffffff',
-            strokeWeight: 1.5,
-            scale:        5,
+            strokeWeight: 2,
+            scale:        6,
         },
         clickable: false,
         zIndex:    200,
@@ -275,9 +277,9 @@ function onMapTapForDraw(event) {
     } else {
         state.drawingPolyline = new google.maps.Polyline({
             path:          state.drawingPoints,
-            strokeColor:   FENCE_CONFIG.primaryColor || '#16a34a',
-            strokeOpacity: 0.7,
-            strokeWeight:  3,
+            strokeColor:   lineColor,
+            strokeOpacity: 0.85,
+            strokeWeight:  4,
             map:           state.map,
             clickable:     false,
             icons: [{
@@ -330,16 +332,30 @@ function clearDrawingPreview() {
 // POLYLINE COMPLETE
 // ──────────────────────────────────────────
 function onPolylineComplete(polyline) {
-    const lengthFt = computeLengthFt(polyline);
-    const id       = state.nextId++;
-    const label    = createSegmentLabel(getPolylineMidpoint(polyline), id);
+    const lengthFt  = computeLengthFt(polyline);
+    const id        = state.nextId++;
+    const lineColor = FENCE_CONFIG.fenceLineColor || '#f97316';
+    const darkColor = shadeColor(lineColor, -15);
 
-    const primary = FENCE_CONFIG.primaryColor || '#16a34a';
-    const dark    = shadeColor(primary, -12);
-    polyline.addListener('mouseover', () => polyline.setOptions({ strokeWeight: 5, strokeColor: dark }));
-    polyline.addListener('mouseout',  () => polyline.setOptions({ strokeWeight: 3, strokeColor: primary }));
+    // White outline polyline drawn underneath for contrast on any background
+    const outline = new google.maps.Polyline({
+        path:          polyline.getPath(),
+        strokeColor:   '#ffffff',
+        strokeOpacity: 0.9,
+        strokeWeight:  7,
+        map:           state.map,
+        clickable:     false,
+        zIndex:        1,
+    });
 
-    state.segments.push({ id, polyline, labelMarker: label, lengthFt });
+    polyline.setOptions({ strokeColor: lineColor, strokeOpacity: 1, strokeWeight: 4, zIndex: 2 });
+
+    polyline.addListener('mouseover', () => polyline.setOptions({ strokeWeight: 6, strokeColor: darkColor }));
+    polyline.addListener('mouseout',  () => polyline.setOptions({ strokeWeight: 4, strokeColor: lineColor }));
+
+    const label = createSegmentLabel(getPolylineMidpoint(polyline), id);
+
+    state.segments.push({ id, polyline, outline, labelMarker: label, lengthFt });
     state.actionHistory.push({ kind: 'segment', id });
 
     renderSegmentsList();
@@ -356,7 +372,7 @@ function createSegmentLabel(position, number) {
         map: state.map,
         icon: {
             path:         google.maps.SymbolPath.CIRCLE,
-            fillColor:    FENCE_CONFIG.primaryColor || '#16a34a',
+            fillColor:    FENCE_CONFIG.fenceLineColor || '#f97316',
             fillOpacity:  1,
             strokeColor:  '#ffffff',
             strokeWeight: 2,
@@ -430,6 +446,7 @@ function removeSegment(id) {
     if (idx === -1) return;
     const [seg] = state.segments.splice(idx, 1);
     seg.polyline.setMap(null);
+    if (seg.outline) seg.outline.setMap(null);
     seg.labelMarker.setMap(null);
     state.actionHistory = state.actionHistory.filter(a => !(a.kind === 'segment' && a.id === id));
     renderSegmentsList();

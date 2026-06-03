@@ -35,6 +35,7 @@ const FENCE_CONFIG = (function () {
         googleMapsApiKey:  'AIzaSyDkc_fasqISbhdxwRK0FCJ5qohDbvUJm8Q',
         companyName:       '',
         primaryColor:      '#16a34a',
+        fenceLineColor:    '#f97316',   // orange — visible on green grass, colorblind-friendly
         phone:             '',
         email:             '',
         website:           '',
@@ -54,6 +55,7 @@ const FENCE_CONFIG = (function () {
         apiKey:     'googleMapsApiKey',
         company:    'companyName',
         color:      'primaryColor',
+        lineColor:  'fenceLineColor',
         phone:      'phone',
         email:      'email',
         website:    'website',
@@ -78,7 +80,7 @@ const FENCE_CONFIG = (function () {
         let val = params.get(param);
         if (NUMERIC.has(key))          { val = parseFloat(val) || 0; }
         else if (key === 'allowPriceEdit') { val = val !== 'false' && val !== '0'; }
-        else if (key === 'primaryColor')   { if (val && !val.startsWith('#')) val = '#' + val; }
+        else if (key === 'primaryColor' || key === 'fenceLineColor') { if (val && !val.startsWith('#')) val = '#' + val; }
         override[key] = val;
     });
 
