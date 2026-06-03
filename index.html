@@ -205,6 +205,13 @@
         <!-- Show sidebar button when collapsed -->
         <button id="btn-show-sidebar" class="btn-show-sidebar" onclick="expandSidebar()">&#8250; Menu</button>
 
+        <!-- Drawing status bar — shown while Draw Fence or Add Gate mode is active -->
+        <div id="drawing-bar" class="drawing-bar hidden">
+            <span id="drawing-bar-text">Tap the map to place your first fence point</span>
+            <button id="btn-finish-section" class="btn-finish" style="display:none">Finish Section</button>
+            <button id="btn-cancel-drawing" class="btn-cancel-draw">Cancel</button>
+        </div>
+
         <!-- API key / load error -->
         <div id="api-error" class="api-error hidden">
             <div class="api-error-box">
