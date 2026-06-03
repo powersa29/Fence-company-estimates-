@@ -32,7 +32,7 @@ const FENCE_CONFIG = (function () {
 
     /* ── Edit these values for a single-company deployment ── */
     const DEFAULTS = {
-        googleMapsApiKey:  'YOUR_GOOGLE_MAPS_API_KEY',
+        googleMapsApiKey:  'AIzaSyDkc_fasqISbhdxwRK0FCJ5qohDbvUJm8Q',
         companyName:       '',
         primaryColor:      '#16a34a',
         phone:             '',
