@@ -537,7 +537,7 @@ html, body {
 .map-ctrl-btn.active { background: var(--gray-900); color: var(--white); }
 
 /* Show sidebar button (visible when sidebar is collapsed) */
-#btn-show-sidebar {
+.btn-show-sidebar {
     display: none;
     position: absolute;
     top: 12px;
@@ -553,7 +553,7 @@ html, body {
     cursor: pointer;
     box-shadow: var(--shadow-md);
 }
-#sidebar.collapsed ~ #map-area #btn-show-sidebar { display: block; }
+#sidebar.collapsed + #map-area .btn-show-sidebar { display: block; }
 
 /* =========================================
    DRAWING STATUS BAR
@@ -791,6 +791,9 @@ html, body {
         color: #444;
         margin-bottom: 0;
     }
+
+    .pt-contact { font-size: 10pt; color: #555; margin-top: 4pt; }
+    .pt-contact span { display: block; line-height: 1.6; }
 
     .pt-meta { font-size: 11pt; border-collapse: collapse; }
     .pt-meta td { padding: 2pt 8pt 2pt 0; }

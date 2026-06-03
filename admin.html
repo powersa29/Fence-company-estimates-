@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FenceEstimate Pro — Embed Code Generator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#1f2937;background:#f3f4f6;min-height:100vh}
+
+/* ── HEADER ── */
+.admin-header{background:#111827;color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.admin-header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.admin-header p{font-size:13px;color:#9ca3af;margin-top:2px}
+.back-link{color:#9ca3af;font-size:13px;text-decoration:none;padding:6px 14px;border:1px solid #374151;border-radius:6px;white-space:nowrap;transition:color .15s,border-color .15s}
+.back-link:hover{color:#fff;border-color:#6b7280}
+
+/* ── LAYOUT ── */
+.admin-body{max-width:1240px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:1fr 420px;gap:24px;align-items:start}
+@media(max-width:860px){.admin-body{grid-template-columns:1fr}}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-head{padding:14px 20px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px}
+.card-head h2{font-size:14px;font-weight:700;color:#374151}
+.card-num{width:22px;height:22px;border-radius:50%;background:#2563eb;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-body{padding:18px 20px}
+
+/* ── FORM ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.single{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
+.form-group input,.form-group select,.form-group textarea{border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:14px;color:#1f2937;outline:none;transition:border-color .15s;background:#fff;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#2563eb}
+.form-group textarea{resize:vertical;min-height:60px}
+.form-group .hint{font-size:11px;color:#9ca3af;margin-top:2px}
+.form-group select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+
+/* Color picker */
+.color-row{display:flex;align-items:center;gap:10px}
+.color-swatch{width:38px;height:38px;border-radius:6px;border:2px solid #e5e7eb;cursor:pointer;flex-shrink:0;padding:0;overflow:hidden}
+.color-swatch input[type="color"]{width:56px;height:56px;border:none;cursor:pointer;transform:translate(-9px,-9px);background:none}
+.color-hex{flex:1;font-family:monospace;font-size:13px}
+
+/* Input with prefix */
+.input-prefix{display:flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;transition:border-color .15s}
+.input-prefix:focus-within{border-color:#2563eb}
+.input-prefix span{background:#f9fafb;padding:0 8px;color:#9ca3af;font-size:13px;border-right:1px solid #d1d5db;display:flex;align-items:center}
+.input-prefix input{border:none!important;border-radius:0!important;padding:8px 8px!important;flex:1;min-width:0}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.toggle-row label{font-size:13px;color:#374151;font-weight:500}
+.toggle{position:relative;width:42px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:12px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked + .toggle-slider{background:#16a34a}
+.toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+
+/* ── RIGHT PANEL ── */
+.embed-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:sticky;top:24px}
+.embed-card-head{padding:14px 20px;background:#111827;color:#fff}
+.embed-card-head h2{font-size:15px;font-weight:700}
+.embed-card-head p{font-size:12px;color:#9ca3af;margin-top:2px}
+.embed-body{padding:20px}
+
+.url-display{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;font-size:12px;color:#6b7280;word-break:break-all;margin-bottom:12px;font-family:monospace;max-height:60px;overflow-y:auto}
+
+.code-block{position:relative;background:#1f2937;color:#e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;margin-bottom:12px;max-height:180px;overflow-y:auto}
+
+.btn-copy{width:100%;padding:10px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-bottom:16px}
+.btn-copy:hover{background:#15803d}
+.btn-copy.copied{background:#2563eb}
+
+.preview-btn{width:100%;padding:9px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer;transition:background .15s;margin-bottom:16px;font-weight:600}
+.preview-btn:hover{background:#f9fafb}
+
+.divider{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
+
+.instructions h3{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px}
+.instructions ol{padding-left:18px;color:#6b7280;font-size:13px;line-height:2}
+.instructions code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px;color:#1f2937}
+.instructions a{color:#2563eb}
+
+/* ── NOTICE BANNER ── */
+.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;font-size:13px;color:#1d4ed8;margin-bottom:16px;line-height:1.6}
+.notice strong{font-weight:700}
+
+/* ── HEIGHT CONTROL ── */
+.height-preview{display:flex;align-items:center;gap:8px}
+.height-preview input{width:80px}
+.height-preview span{color:#6b7280;font-size:13px}
+
+/* ── API KEY SECTION ── */
+.apikey-group{position:relative}
+.apikey-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:12px;padding:2px 4px}
+.apikey-group input{padding-right:60px}
+.api-warning{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-top:6px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<header class="admin-header">
+    <div>
+        <h1>FenceEstimate Pro — Embed Code Generator</h1>
+        <p>Configure a client's estimator widget and generate their embed code</p>
+    </div>
+    <a href="index.html" class="back-link">Open Estimator &rarr;</a>
+</header>
+
+<div class="admin-body">
+
+    <!-- ===== LEFT: CONFIGURATION FORM ===== -->
+    <div class="form-column">
+
+        <!-- STEP 1: Hosted URL -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">1</div><h2>Your Hosted URL</h2></div>
+            <div class="card-body">
+                <div class="notice">
+                    <strong>One-time setup:</strong> Host this folder on any web server (GitHub Pages, Netlify, your own hosting).
+                    Enter the URL where <code>index.html</code> lives below. All client embed codes will point to this URL.
+                </div>
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Base URL (where you host the estimator)</label>
+                        <input type="url" id="base-url" placeholder="https://yourdomain.com/fence-estimator/" value="" />
+                        <span class="hint">Include the trailing slash. Example: https://yoursite.com/estimator/</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Google Maps API Key -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">2</div><h2>Google Maps API Key</h2></div>
+            <div class="card-body">
+                <div class="form-row single">
+                    <div class="form-group apikey-group">
+                        <label>API Key</label>
+                        <input type="password" id="api-key" placeholder="AIzaSy..." autocomplete="off" />
+                        <button class="apikey-toggle" type="button" onclick="toggleApiKeyVisibility()">Show</button>
+                        <div class="api-warning">
+                            <strong>Security tip:</strong> Restrict your key to your hosted domain in
+                            <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a>
+                            under Credentials &rarr; API key &rarr; Application restrictions &rarr; HTTP referrers.
+                            Required APIs: <strong>Maps JavaScript API</strong> and <strong>Places API</strong>.
+                        </div>
+                    </div>
+                </div>
+                <div class="notice" style="margin-top:10px;margin-bottom:0">
+                    <strong>Recommended:</strong> Add the API key directly to <code>js/config.js</code> on your server
+                    (set <code>googleMapsApiKey</code> in DEFAULTS). When hosted centrally, the key never appears in embed codes —
+                    clients just paste an iframe and your server handles everything.
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Company Information -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">3</div><h2>Client Company Information</h2></div>
+            <div class="card-body">
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Company Name *</label>
+                        <input type="text" id="company-name" placeholder="Valley Fence Co." maxlength="60" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone" placeholder="(555) 000-1234" />
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="info@company.com" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="url" id="website" placeholder="https://valleyfence.com" />
+                    </div>
+                    <div class="form-group">
+                        <label>License Number</label>
+                        <input type="text" id="license" placeholder="LIC #123456" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Branding -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">4</div><h2>Branding</h2></div>
+            <div class="card-body">
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Primary / Brand Color</label>
+                        <div class="color-row">
+                            <div class="color-swatch" id="color-swatch-wrap">
+                                <input type="color" id="color-picker" value="#16a34a" />
+                            </div>
+                            <input type="text" id="color-hex" class="color-hex" value="#16a34a" maxlength="7" placeholder="#16a34a" />
+                        </div>
+                        <span class="hint">Used for fence lines, buttons, and accents throughout the widget</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Default Pricing -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">5</div><h2>Default Pricing</h2></div>
+            <div class="card-body">
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Default Fence Type</label>
+                        <select id="fence-type">
+                            <option value="wood">Wood Privacy (6 ft)</option>
+                            <option value="vinyl">Vinyl Privacy (6 ft)</option>
+                            <option value="chain-link">Chain Link</option>
+                            <option value="aluminum">Aluminum Ornamental</option>
+                            <option value="split-rail">Split Rail (3-rail)</option>
+                            <option value="custom">Custom / Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price Per Linear Foot</label>
+                        <div class="input-prefix">
+                            <span>$</span>
+                            <input type="number" id="per-foot" value="45" min="0" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Single Gate (installed)</label>
+                        <div class="input-prefix">
+                            <span>$</span>
+                            <input type="number" id="single-gate" value="350" min="0" step="1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Double Gate (installed)</label>
+                        <div class="input-prefix">
+                            <span>$</span>
+                            <input type="number" id="double-gate" value="650" min="0" step="1" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tax Rate</label>
+                        <div class="input-prefix">
+                            <span>%</span>
+                            <input type="number" id="tax-rate" value="0" min="0" max="30" step="0.1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Default Notes on Estimate</label>
+                        <textarea id="default-notes" placeholder="e.g. Price includes removal of existing fence..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 6: Options -->
+        <div class="card">
+            <div class="card-head"><div class="card-num">6</div><h2>Widget Options</h2></div>
+            <div class="card-body">
+                <div class="toggle-row">
+                    <label for="allow-edit">Allow users to edit pricing</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="allow-edit" checked />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="form-group" style="margin-top:14px">
+                    <label>Estimate Valid For (days)</label>
+                    <div class="height-preview">
+                        <input type="number" id="valid-days" value="30" min="1" max="365" style="width:80px" />
+                        <span>days (shown on printed estimate)</span>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:14px">
+                    <label>Embed Height (px)</label>
+                    <div class="height-preview">
+                        <input type="number" id="embed-height" value="720" min="400" max="1200" style="width:80px" />
+                        <span>px &mdash; 650–800px works best on most websites</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.form-column -->
+
+    <!-- ===== RIGHT: OUTPUT ===== -->
+    <div class="output-column">
+        <div class="embed-card">
+            <div class="embed-card-head">
+                <h2>Generated Embed Code</h2>
+                <p>Copy and paste into the client's website</p>
+            </div>
+            <div class="embed-body">
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:6px">
+                    Config URL
+                </div>
+                <div class="url-display" id="config-url">Fill in the form to generate...</div>
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin:12px 0 6px">
+                    Embed Code (paste on client's site)
+                </div>
+                <div class="code-block" id="embed-code-block">&lt;!-- Fill in the form above --&gt;</div>
+
+                <button class="btn-copy" id="copy-btn" onclick="copyEmbedCode()">
+                    Copy Embed Code
+                </button>
+
+                <button class="preview-btn" onclick="openPreview()">
+                    Open Preview in New Tab &rarr;
+                </button>
+
+                <hr class="divider">
+
+                <div class="instructions">
+                    <h3>Deployment Steps</h3>
+                    <ol>
+                        <li>Add your Google Maps API key to <code>js/config.js</code> (DEFAULTS section)</li>
+                        <li>Upload this entire folder to your web hosting or GitHub Pages</li>
+                        <li>Enter your hosted URL in Step 1 above</li>
+                        <li>Fill in each client's details and copy their embed code</li>
+                        <li>Paste the code anywhere in the client's website HTML</li>
+                    </ol>
+
+                    <hr class="divider">
+                    <h3>Hosting Options (all free)</h3>
+                    <ol>
+                        <li><strong>GitHub Pages</strong> — Push to a GitHub repo, enable Pages in Settings &rarr; instant free hosting</li>
+                        <li><strong>Netlify</strong> — Drag-and-drop the project folder at app.netlify.com</li>
+                        <li><strong>Any web host</strong> — Upload via FTP, no server-side code needed (pure static files)</li>
+                    </ol>
+
+                    <hr class="divider">
+                    <h3>API Key Restriction (important)</h3>
+                    <ol>
+                        <li>In Google Cloud Console, find your API key under Credentials</li>
+                        <li>Set <strong>Application restrictions</strong> to "HTTP referrers"</li>
+                        <li>Add <code>https://yourdomain.com/*</code></li>
+                        <li>This prevents anyone else from using your key, even if they see it</li>
+                    </ol>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.admin-body -->
+
+<script>
+// ── Inputs that trigger embed regeneration ──
+const INPUTS = [
+    'base-url','api-key','company-name','phone','email','website','license',
+    'color-hex','fence-type','per-foot','single-gate','double-gate','tax-rate',
+    'default-notes','allow-edit','valid-days','embed-height'
+];
+
+INPUTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input',  generateEmbed);
+    el.addEventListener('change', generateEmbed);
+});
+
+// Color picker ↔ hex input sync
+document.getElementById('color-picker').addEventListener('input', function () {
+    document.getElementById('color-hex').value = this.value;
+    document.getElementById('color-swatch-wrap').style.background = this.value;
+    generateEmbed();
+});
+document.getElementById('color-hex').addEventListener('input', function () {
+    const hex = this.value.startsWith('#') ? this.value : '#' + this.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        document.getElementById('color-picker').value = hex;
+        document.getElementById('color-swatch-wrap').style.background = hex;
+    }
+    generateEmbed();
+});
+
+// Initialise color swatch
+document.getElementById('color-swatch-wrap').style.background =
+    document.getElementById('color-picker').value;
+
+// ── Generate embed code ──
+function generateEmbed() {
+    const baseUrl = (document.getElementById('base-url').value || '').trim().replace(/\/?$/, '/');
+    if (!baseUrl || baseUrl === '/') {
+        document.getElementById('config-url').textContent     = 'Enter your hosted URL in Step 1';
+        document.getElementById('embed-code-block').textContent = '<!-- Enter your hosted URL in Step 1 -->';
+        return;
+    }
+
+    const p = new URLSearchParams();
+
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY') p.set('apiKey', apiKey);
+
+    const company = document.getElementById('company-name').value.trim();
+    if (company) p.set('company', company);
+
+    const color = document.getElementById('color-hex').value.trim().replace('#','');
+    if (color && color !== '16a34a') p.set('color', color);
+
+    const phone = document.getElementById('phone').value.trim();
+    if (phone) p.set('phone', phone);
+
+    const email = document.getElementById('email').value.trim();
+    if (email) p.set('email', email);
+
+    const website = document.getElementById('website').value.trim();
+    if (website) p.set('website', website);
+
+    const license = document.getElementById('license').value.trim();
+    if (license) p.set('license', license);
+
+    const fenceType = document.getElementById('fence-type').value;
+    if (fenceType !== 'wood') p.set('fenceType', fenceType);
+
+    const perFoot = document.getElementById('per-foot').value;
+    if (perFoot && parseFloat(perFoot) !== 45) p.set('perFoot', perFoot);
+
+    const sg = document.getElementById('single-gate').value;
+    if (sg && parseFloat(sg) !== 350) p.set('singleGate', sg);
+
+    const dg = document.getElementById('double-gate').value;
+    if (dg && parseFloat(dg) !== 650) p.set('doubleGate', dg);
+
+    const tax = document.getElementById('tax-rate').value;
+    if (tax && parseFloat(tax) !== 0) p.set('taxRate', tax);
+
+    if (!document.getElementById('allow-edit').checked) p.set('allowEdit', 'false');
+
+    const valid = document.getElementById('valid-days').value;
+    if (valid && parseInt(valid) !== 30) p.set('validDays', valid);
+
+    const notes = document.getElementById('default-notes').value.trim();
+    if (notes) p.set('notes', notes);
+
+    const qs      = p.toString();
+    const fullUrl = baseUrl + 'index.html' + (qs ? '?' + qs : '');
+    const height  = document.getElementById('embed-height').value || '720';
+
+    document.getElementById('config-url').textContent = fullUrl;
+
+    const code =
+`<!-- FenceEstimate Pro — ${company || 'Fence Estimator'} -->
+<iframe
+  src="${fullUrl}"
+  width="100%"
+  height="${height}"
+  frameborder="0"
+  style="border-radius:10px;border:1px solid #e5e7eb;display:block;"
+  title="Fence Installation Estimator"
+  loading="lazy"
+  allow="geolocation"
+></iframe>`;
+
+    document.getElementById('embed-code-block').textContent = code;
+}
+
+function copyEmbedCode() {
+    const text = document.getElementById('embed-code-block').textContent;
+    if (!text || text.includes('Fill in') || text.includes('Enter your')) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = 'Copy Embed Code';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+function openPreview() {
+    const url = document.getElementById('config-url').textContent.trim();
+    if (!url || url.includes('Enter') || url.includes('Fill in')) return;
+    window.open(url, '_blank');
+}
+
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('api-key');
+    const btn   = document.querySelector('.apikey-toggle');
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
+}
+
+// Initial generate
+generateEmbed();
+</script>
+
+</body>
+</html>

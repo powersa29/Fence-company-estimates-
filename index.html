@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FenceEstimate Pro</title>
+    <title>Fence Installation Estimator</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,7 +24,7 @@
                     <line x1="5" y1="14" x2="10" y2="14"/>
                     <line x1="13" y1="14" x2="18" y2="14"/>
                 </svg>
-                <span class="brand-name">FenceEstimate Pro</span>
+                <span class="brand-name" id="brand-name-display">Fence Estimator</span>
             </div>
             <button id="sidebar-toggle" class="sidebar-toggle" title="Collapse sidebar" aria-label="Collapse sidebar">&#8249;</button>
         </div>
@@ -32,7 +32,7 @@
         <div class="sidebar-body">
 
             <!-- Company Name -->
-            <div class="panel">
+            <div class="panel" id="company-panel">
                 <input type="text" id="company-name" class="company-name-input"
                        placeholder="Your Company Name" maxlength="60" autocomplete="off" />
             </div>
@@ -97,7 +97,7 @@
             </div>
 
             <!-- Pricing -->
-            <div class="panel">
+            <div class="panel" id="pricing-panel">
                 <h3 class="panel-title">Fence Type &amp; Pricing</h3>
                 <div class="form-group">
                     <label for="fence-type">Fence Type</label>
@@ -119,14 +119,14 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="price-single-gate">Single Gate (installed)</label>
+                        <label for="price-single-gate">Single Gate</label>
                         <div class="input-addon input-addon-prefix">
                             <span>$</span>
                             <input type="number" id="price-single-gate" min="0" step="1" value="350" />
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="price-double-gate">Double Gate (installed)</label>
+                        <label for="price-double-gate">Double Gate</label>
                         <div class="input-addon input-addon-prefix">
                             <span>$</span>
                             <input type="number" id="price-double-gate" min="0" step="1" value="650" />
@@ -197,28 +197,25 @@
     <main id="map-area">
         <div id="map"></div>
 
-        <!-- Map controls overlay -->
+        <!-- Map type toggle -->
         <div id="map-controls">
-            <button id="btn-map-type" class="map-ctrl-btn" title="Toggle satellite/map view">Satellite</button>
+            <button id="btn-map-type" class="map-ctrl-btn">Satellite</button>
         </div>
 
-        <!-- Drawing status bar -->
-        <div id="drawing-bar" class="drawing-bar hidden">
-            <span id="drawing-bar-text">Click to add fence points &mdash; double-click to finish section</span>
-            <button id="btn-finish-section" class="btn-finish">Finish Section</button>
-            <button id="btn-cancel-drawing" class="btn-cancel-draw">Cancel</button>
-        </div>
+        <!-- Show sidebar button when collapsed -->
+        <button id="btn-show-sidebar" class="btn-show-sidebar" onclick="expandSidebar()">&#8250; Menu</button>
 
-        <!-- API key error -->
+        <!-- API key / load error -->
         <div id="api-error" class="api-error hidden">
             <div class="api-error-box">
                 <h2>Google Maps API Key Required</h2>
-                <p>Open <code>index.html</code> and replace <code>YOUR_GOOGLE_MAPS_API_KEY</code> with your key.</p>
+                <p>The estimator needs a valid Google Maps API key to display the map.</p>
                 <ol>
                     <li>Go to <strong>console.cloud.google.com</strong></li>
-                    <li>Create/select a project &rarr; enable <strong>Maps JavaScript API</strong> and <strong>Places API</strong></li>
+                    <li>Enable <strong>Maps JavaScript API</strong> and <strong>Places API</strong></li>
                     <li>Create an API key under Credentials</li>
-                    <li>Paste the key in the <code>&lt;script&gt;</code> tag at the bottom of <code>index.html</code></li>
+                    <li>Open <code>js/config.js</code> and set <code>googleMapsApiKey</code> in the DEFAULTS section</li>
+                    <li>Or use the <a href="admin.html">Admin panel</a> to pass the key via URL parameter</li>
                 </ol>
             </div>
         </div>
@@ -268,15 +265,18 @@
 <!-- ===== PRINT TEMPLATE ===== -->
 <div id="print-template" class="print-only">
     <div class="pt-header">
-        <div>
+        <div class="pt-company-block">
             <h1 id="pt-company-name" class="pt-company"></h1>
-            <p class="pt-subtitle">Fence Installation Estimate</p>
+            <div id="pt-contact-block" class="pt-contact"></div>
         </div>
-        <table class="pt-meta">
-            <tr><td>Date:</td><td id="pt-date"></td></tr>
-            <tr><td>Property:</td><td id="pt-address"></td></tr>
-            <tr><td>Estimate valid:</td><td>30 days from date above</td></tr>
-        </table>
+        <div>
+            <p class="pt-subtitle">Fence Installation Estimate</p>
+            <table class="pt-meta">
+                <tr><td>Date:</td><td id="pt-date"></td></tr>
+                <tr><td>Property:</td><td id="pt-address"></td></tr>
+                <tr><td>Estimate valid:</td><td id="pt-valid-days">30 days from date above</td></tr>
+            </table>
+        </div>
     </div>
 
     <table class="pt-items">
@@ -322,16 +322,10 @@
     </div>
 </div>
 
+<!-- config.js MUST load before app.js — it defines FENCE_CONFIG used by app.js -->
+<script src="js/config.js"></script>
 <script src="js/app.js"></script>
-<!--
-    SETUP: Replace YOUR_GOOGLE_MAPS_API_KEY below with your actual key.
-    Required APIs: Maps JavaScript API, Places API
-    Get a key at: console.cloud.google.com
--->
-<script
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry,drawing&callback=initMap&loading=async"
-    async defer>
-</script>
+<!-- Google Maps is loaded dynamically by app.js using the key from FENCE_CONFIG -->
 
 </body>
 </html>

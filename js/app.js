@@ -1,5 +1,6 @@
 /* =========================================
    FenceEstimate Pro — Application Logic
+   Reads configuration from FENCE_CONFIG (js/config.js)
    ========================================= */
 
 // ──────────────────────────────────────────
@@ -21,37 +22,134 @@ const state = {
     map:             null,
     drawingManager:  null,
     autocomplete:    null,
-    mapTypeRoad:     false,     // false = hybrid/satellite, true = roadmap
+    mapTypeRoad:     false,
 
     mode:            null,      // 'draw' | 'gate' | null
     segments:        [],        // [{ id, polyline, labelMarker, lengthFt }]
     gates:           [],        // [{ id, marker, type }]
-    actionHistory:   [],        // for undo: [{ kind:'segment'|'gate', id }]
+    actionHistory:   [],        // for undo
     nextId:          1,
 
     gateClickListener: null,
     pendingGateLatLng: null,
-
-    pricing: {
-        fenceType:    'wood',
-        perFoot:      45,
-        singleGate:   350,
-        doubleGate:   650,
-        taxRate:      0,
-    },
-    companyName:   '',
-    currentAddress: '',
+    currentAddress:    '',
 };
 
 // ──────────────────────────────────────────
-// INITIALIZATION  (Google Maps callback)
+// BOOTSTRAP — called after DOM is ready
+// ──────────────────────────────────────────
+(function bootstrap() {
+    applyBranding();
+    applyConfigDefaults();
+    loadLocalSettings();
+    loadGoogleMapsScript();
+})();
+
+// ──────────────────────────────────────────
+// APPLY BRANDING FROM CONFIG
+// ──────────────────────────────────────────
+function applyBranding() {
+    const color = FENCE_CONFIG.primaryColor || '#16a34a';
+
+    // Derive a slightly darker shade for hover states
+    const darker = shadeColor(color, -12);
+
+    const root = document.documentElement;
+    root.style.setProperty('--green',      color);
+    root.style.setProperty('--green-dark', darker);
+    root.style.setProperty('--green-light', shadeColor(color, 88));
+
+    // Company name in header brand area
+    if (FENCE_CONFIG.companyName) {
+        const brandEl = document.getElementById('brand-name-display');
+        if (brandEl) brandEl.textContent = FENCE_CONFIG.companyName;
+        const companyInput = document.getElementById('company-name');
+        if (companyInput && !companyInput.value) companyInput.value = FENCE_CONFIG.companyName;
+    }
+
+    // Page title
+    if (FENCE_CONFIG.companyName) {
+        document.title = FENCE_CONFIG.companyName + ' — Fence Estimator';
+    }
+}
+
+// Lighten (positive pct) or darken (negative pct) a hex color
+function shadeColor(hex, pct) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+    const num = parseInt(hex, 16);
+    const r   = Math.min(255, Math.max(0, (num >> 16) + Math.round(255 * pct / 100)));
+    const g   = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * pct / 100)));
+    const b   = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * pct / 100)));
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+// ──────────────────────────────────────────
+// APPLY CONFIG DEFAULTS TO FORM FIELDS
+// ──────────────────────────────────────────
+function applyConfigDefaults() {
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val != null && val !== '') el.value = val;
+    };
+
+    setVal('fence-type',         FENCE_CONFIG.fenceType);
+    setVal('price-per-foot',     FENCE_CONFIG.pricePerFoot);
+    setVal('price-single-gate',  FENCE_CONFIG.singleGate);
+    setVal('price-double-gate',  FENCE_CONFIG.doubleGate);
+    setVal('tax-rate',           FENCE_CONFIG.taxRate);
+    setVal('notes-input',        FENCE_CONFIG.defaultNotes);
+
+    // Lock pricing inputs if the config disables editing
+    if (!FENCE_CONFIG.allowPriceEdit) {
+        ['price-per-foot','price-single-gate','price-double-gate','tax-rate'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.readOnly = true; el.style.background = '#f9fafb'; }
+        });
+        const fenceType = document.getElementById('fence-type');
+        if (fenceType) fenceType.disabled = true;
+    }
+}
+
+// ──────────────────────────────────────────
+// DYNAMIC GOOGLE MAPS LOADER
+// ──────────────────────────────────────────
+function loadGoogleMapsScript() {
+    const key = FENCE_CONFIG.googleMapsApiKey;
+
+    if (!key || key === 'YOUR_GOOGLE_MAPS_API_KEY') {
+        document.getElementById('api-error').classList.remove('hidden');
+        return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js'
+        + '?key=' + encodeURIComponent(key)
+        + '&libraries=places,geometry,drawing'
+        + '&callback=initMap'
+        + '&loading=async';
+    script.async = true;
+    script.defer = true;
+    script.onerror = function () {
+        document.getElementById('api-error').classList.remove('hidden');
+    };
+    document.head.appendChild(script);
+}
+
+// Auth failure callback for invalid/restricted API key
+window.gm_authFailure = function () {
+    document.getElementById('api-error').classList.remove('hidden');
+};
+
+// ──────────────────────────────────────────
+// MAP INITIALIZATION  (Google Maps callback)
 // ──────────────────────────────────────────
 function initMap() {
     state.map = new google.maps.Map(document.getElementById('map'), {
-        center:           { lat: 39.8283, lng: -98.5795 },
-        zoom:             4,
-        mapTypeId:        'hybrid',
-        mapTypeControl:   false,
+        center:            { lat: 39.8283, lng: -98.5795 },
+        zoom:              4,
+        mapTypeId:         'hybrid',
+        mapTypeControl:    false,
         streetViewControl: false,
         fullscreenControl: false,
         zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
@@ -60,13 +158,8 @@ function initMap() {
     setupDrawingManager();
     setupAutocomplete();
     setupUIListeners();
-    loadSettings();
+    renderTotals();
 }
-
-// Auth failure callback for invalid API key
-window.gm_authFailure = function () {
-    document.getElementById('api-error').classList.remove('hidden');
-};
 
 // ──────────────────────────────────────────
 // DRAWING MANAGER
@@ -76,7 +169,7 @@ function setupDrawingManager() {
         drawingMode:    null,
         drawingControl: false,
         polylineOptions: {
-            strokeColor:   '#16a34a',
+            strokeColor:   FENCE_CONFIG.primaryColor || '#16a34a',
             strokeOpacity: 0.95,
             strokeWeight:  3,
             clickable:     true,
@@ -97,7 +190,7 @@ function setupDrawingManager() {
             onPolylineComplete(polyline);
         }
 
-        // Stay in draw mode to allow chaining another section
+        // Stay in draw mode for chaining
         if (state.mode === 'draw') {
             state.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
         }
@@ -112,9 +205,11 @@ function onPolylineComplete(polyline) {
     const id       = state.nextId++;
     const label    = createSegmentLabel(getPolylineMidpoint(polyline), id);
 
-    // Hover highlight
-    polyline.addListener('mouseover', () => polyline.setOptions({ strokeWeight: 5, strokeColor: '#15803d' }));
-    polyline.addListener('mouseout',  () => polyline.setOptions({ strokeWeight: 3, strokeColor: '#16a34a' }));
+    const primaryColor = FENCE_CONFIG.primaryColor || '#16a34a';
+    const darkColor    = shadeColor(primaryColor, -12);
+
+    polyline.addListener('mouseover', () => polyline.setOptions({ strokeWeight: 5, strokeColor: darkColor }));
+    polyline.addListener('mouseout',  () => polyline.setOptions({ strokeWeight: 3, strokeColor: primaryColor }));
 
     state.segments.push({ id, polyline, labelMarker: label, lengthFt });
     state.actionHistory.push({ kind: 'segment', id });
@@ -132,12 +227,12 @@ function createSegmentLabel(position, number) {
         position,
         map: state.map,
         icon: {
-            path:          google.maps.SymbolPath.CIRCLE,
-            fillColor:     '#16a34a',
-            fillOpacity:   1,
-            strokeColor:   '#ffffff',
-            strokeWeight:  2,
-            scale:         13,
+            path:         google.maps.SymbolPath.CIRCLE,
+            fillColor:    FENCE_CONFIG.primaryColor || '#16a34a',
+            fillOpacity:  1,
+            strokeColor:  '#ffffff',
+            strokeWeight: 2,
+            scale:        13,
         },
         label: {
             text:       String(number),
@@ -170,14 +265,14 @@ function disableGateMode() {
 function showGateModal(latLng) {
     state.pendingGateLatLng = latLng;
     const pricing = readPricingFromUI();
-    document.getElementById('modal-single-price').textContent = '$' + pricing.singleGate.toLocaleString();
-    document.getElementById('modal-double-price').textContent = '$' + pricing.doubleGate.toLocaleString();
+    document.getElementById('modal-single-price').textContent = formatCurrency(pricing.singleGate);
+    document.getElementById('modal-double-price').textContent = formatCurrency(pricing.doubleGate);
     document.getElementById('gate-modal').classList.remove('hidden');
 }
 
 function placeGate(latLng, type) {
     const id     = state.nextId++;
-    const marker = createGateMarker(latLng, type, id);
+    const marker = createGateMarker(latLng, type);
 
     state.gates.push({ id, marker, type });
     state.actionHistory.push({ kind: 'gate', id });
@@ -187,21 +282,20 @@ function placeGate(latLng, type) {
     renderTotals();
 }
 
-function createGateMarker(position, type, id) {
-    const label = type === 'double' ? 'DG' : 'G';
+function createGateMarker(position, type) {
     return new google.maps.Marker({
         position,
         map: state.map,
         icon: {
-            path:        google.maps.SymbolPath.CIRCLE,
-            fillColor:   '#2563eb',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
+            path:         google.maps.SymbolPath.CIRCLE,
+            fillColor:    '#2563eb',
+            fillOpacity:  1,
+            strokeColor:  '#ffffff',
             strokeWeight: 2,
-            scale:       11,
+            scale:        11,
         },
         label: {
-            text:       label,
+            text:       type === 'double' ? 'DG' : 'G',
             color:      '#ffffff',
             fontSize:   '9px',
             fontWeight: 'bold',
@@ -215,34 +309,26 @@ function createGateMarker(position, type, id) {
 // MODE MANAGEMENT
 // ──────────────────────────────────────────
 function setMode(newMode) {
-    // Toggle off if clicking the active mode
     if (state.mode === newMode) newMode = null;
-
     state.mode = newMode;
 
-    // Manage DrawingManager
     if (newMode === 'draw') {
         state.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
         disableGateMode();
     } else {
-        state.drawingManager.setDrawingMode(null);
+        if (state.drawingManager) state.drawingManager.setDrawingMode(null);
     }
 
-    if (newMode === 'gate') {
-        enableGateMode();
-    } else {
-        disableGateMode();
-    }
+    if (newMode === 'gate') enableGateMode();
+    else                   disableGateMode();
 
-    // Update button active states
     document.querySelectorAll('.tool-btn[data-mode]').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.mode === newMode);
     });
 
-    // Update hint text
     const hints = {
         draw: 'Click on the map to place fence points. Double-click to finish a section. Draw multiple sections as needed.',
-        gate: 'Click anywhere on the map to place a gate marker. Choose single or double gate.',
+        gate: 'Click anywhere on the map to place a gate marker. Choose single or double gate in the popup.',
     };
     document.getElementById('mode-hint').textContent =
         hints[newMode] || 'Click "Draw Fence" to start measuring your fence line.';
@@ -295,7 +381,7 @@ function clearAll() {
 // ──────────────────────────────────────────
 function computeLengthFt(polyline) {
     const meters = google.maps.geometry.spherical.computeLength(polyline.getPath());
-    return meters * 3.28084; // meters → feet
+    return meters * 3.28084;
 }
 
 function getPolylineMidpoint(polyline) {
@@ -318,21 +404,16 @@ function getTotalFeet() {
 // ──────────────────────────────────────────
 function renderSegmentsList() {
     const container = document.getElementById('segments-list');
-
     if (!state.segments.length) {
         container.innerHTML = '<div class="empty-state">No fence sections yet — draw on the map to start</div>';
         return;
     }
-
     container.innerHTML = state.segments.map((seg) => `
         <div class="item-row">
             <div class="item-number">${seg.id}</div>
-            <div class="item-label">
-                Section ${seg.id}
-                <span>Fence section</span>
-            </div>
+            <div class="item-label">Section ${seg.id}<span>Fence section</span></div>
             <div class="item-value">${Math.round(seg.lengthFt)} ft</div>
-            <button class="item-delete" onclick="removeSegment(${seg.id})" title="Remove section" aria-label="Remove section ${seg.id}">&times;</button>
+            <button class="item-delete" onclick="removeSegment(${seg.id})" title="Remove" aria-label="Remove section">&times;</button>
         </div>
     `).join('');
 }
@@ -342,10 +423,7 @@ function renderSegmentsList() {
 // ──────────────────────────────────────────
 function renderGatesList() {
     const container = document.getElementById('gates-list');
-    if (!state.gates.length) {
-        container.innerHTML = '';
-        return;
-    }
+    if (!state.gates.length) { container.innerHTML = ''; return; }
 
     const pricing = readPricingFromUI();
     container.innerHTML = state.gates.map((gate, i) => {
@@ -354,12 +432,9 @@ function renderGatesList() {
         return `
             <div class="item-row">
                 <div class="item-number gate-number">G${i + 1}</div>
-                <div class="item-label">
-                    ${label}
-                    <span>Gate</span>
-                </div>
+                <div class="item-label">${label}<span>Gate</span></div>
                 <div class="item-value">${formatCurrency(price)}</div>
-                <button class="item-delete" onclick="removeGate(${gate.id})" title="Remove gate" aria-label="Remove gate">&times;</button>
+                <button class="item-delete" onclick="removeGate(${gate.id})" title="Remove" aria-label="Remove gate">&times;</button>
             </div>
         `;
     }).join('');
@@ -369,63 +444,50 @@ function renderGatesList() {
 // RENDER — TOTALS
 // ──────────────────────────────────────────
 function renderTotals() {
-    const pricing    = readPricingFromUI();
-    const totalFt    = getTotalFeet();
-    const fenceAmt   = totalFt * pricing.perFoot;
-
+    const pricing     = readPricingFromUI();
+    const totalFt     = getTotalFeet();
+    const fenceAmt    = totalFt * pricing.perFoot;
     const singleCount = state.gates.filter((g) => g.type === 'single').length;
     const doubleCount = state.gates.filter((g) => g.type === 'double').length;
     const gateAmt     = singleCount * pricing.singleGate + doubleCount * pricing.doubleGate;
-
-    const subtotal  = fenceAmt + gateAmt;
-    const taxAmt    = subtotal * (pricing.taxRate / 100);
-    const total     = subtotal + taxAmt;
+    const subtotal    = fenceAmt + gateAmt;
+    const taxAmt      = subtotal * (pricing.taxRate / 100);
+    const total       = subtotal + taxAmt;
 
     document.getElementById('total-feet').textContent  = Math.round(totalFt).toLocaleString() + ' ft';
     document.getElementById('fence-cost').textContent  = formatCurrency(fenceAmt);
     document.getElementById('subtotal').textContent    = formatCurrency(subtotal);
     document.getElementById('grand-total').textContent = formatCurrency(total);
 
-    // Gate cost row
     const gateRow = document.getElementById('gate-cost-row');
-    if (gateAmt > 0) {
-        gateRow.style.display = '';
-        document.getElementById('gate-cost').textContent = formatCurrency(gateAmt);
-    } else {
-        gateRow.style.display = 'none';
-    }
+    gateRow.style.display = gateAmt > 0 ? '' : 'none';
+    if (gateAmt > 0) document.getElementById('gate-cost').textContent = formatCurrency(gateAmt);
 
-    // Tax row
     const taxRow = document.getElementById('tax-row');
     document.getElementById('tax-rate-label').textContent = pricing.taxRate;
-    if (pricing.taxRate > 0) {
-        taxRow.style.display = '';
-        document.getElementById('tax-amount').textContent = formatCurrency(taxAmt);
-    } else {
-        taxRow.style.display = 'none';
-    }
+    taxRow.style.display = pricing.taxRate > 0 ? '' : 'none';
+    if (pricing.taxRate > 0) document.getElementById('tax-amount').textContent = formatCurrency(taxAmt);
 
-    // Enable/disable print button
     document.getElementById('btn-print').disabled = (state.segments.length === 0);
 }
 
 // ──────────────────────────────────────────
-// PRICING — read inputs
+// PRICING HELPERS
 // ──────────────────────────────────────────
 function readPricingFromUI() {
     return {
         fenceType:  document.getElementById('fence-type').value,
-        perFoot:    parseFloat(document.getElementById('price-per-foot').value)  || 0,
+        perFoot:    parseFloat(document.getElementById('price-per-foot').value)    || 0,
         singleGate: parseFloat(document.getElementById('price-single-gate').value) || 0,
         doubleGate: parseFloat(document.getElementById('price-double-gate').value) || 0,
-        taxRate:    parseFloat(document.getElementById('tax-rate').value) || 0,
+        taxRate:    parseFloat(document.getElementById('tax-rate').value)           || 0,
     };
 }
 
 function onFenceTypeChange() {
     const type  = document.getElementById('fence-type').value;
     const price = FENCE_PRESETS[type];
-    if (type !== 'custom' && price != null) {
+    if (type !== 'custom' && price != null && FENCE_CONFIG.allowPriceEdit) {
         document.getElementById('price-per-foot').value = price;
     }
     onPricingChange();
@@ -434,30 +496,28 @@ function onFenceTypeChange() {
 function onPricingChange() {
     renderGatesList();
     renderTotals();
-    saveSettings();
+    saveLocalSettings();
 }
 
 // ──────────────────────────────────────────
-// AUTOCOMPLETE — address search
+// ADDRESS AUTOCOMPLETE
 // ──────────────────────────────────────────
 function setupAutocomplete() {
     const input = document.getElementById('address-input');
     state.autocomplete = new google.maps.places.Autocomplete(input, {
-        types: ['address'],
+        types:  ['address'],
         fields: ['geometry', 'formatted_address'],
     });
 
     state.autocomplete.addListener('place_changed', () => {
         const place = state.autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) return;
-
+        if (!place.geometry?.location) return;
         state.currentAddress = place.formatted_address || input.value;
         state.map.setCenter(place.geometry.location);
-        state.map.setZoom(19); // street-level for fence drawing
+        state.map.setZoom(19);
     });
 }
 
-// Geolocation button
 function locateUser() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -465,7 +525,6 @@ function locateUser() {
             const latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             state.map.setCenter(latlng);
             state.map.setZoom(19);
-            // Reverse geocode to fill the address field
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode({ location: latlng }, (results, status) => {
                 if (status === 'OK' && results[0]) {
@@ -494,53 +553,62 @@ function printEstimate() {
     const taxAmt      = subtotal * (pricing.taxRate / 100);
     const total       = subtotal + taxAmt;
 
-    // Fill header
-    const company = document.getElementById('company-name').value || 'Your Company';
+    // Company info — prefer UI input, fall back to config
+    const company = document.getElementById('company-name').value.trim()
+        || FENCE_CONFIG.companyName || 'Your Company';
+
     document.getElementById('pt-company-name').textContent = company;
-    document.getElementById('pt-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('pt-address').textContent = state.currentAddress || document.getElementById('address-input').value || '—';
+    document.getElementById('pt-date').textContent = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+    document.getElementById('pt-address').textContent =
+        state.currentAddress || document.getElementById('address-input').value || '—';
+
+    const validDays = FENCE_CONFIG.estimateValidDays || 30;
+    document.getElementById('pt-valid-days').textContent = `${validDays} days from date above`;
+
+    // Contact block
+    const contactLines = [];
+    if (FENCE_CONFIG.phone)         contactLines.push(FENCE_CONFIG.phone);
+    if (FENCE_CONFIG.email)         contactLines.push(FENCE_CONFIG.email);
+    if (FENCE_CONFIG.website)       contactLines.push(FENCE_CONFIG.website);
+    if (FENCE_CONFIG.licenseNumber) contactLines.push('License: ' + FENCE_CONFIG.licenseNumber);
+    document.getElementById('pt-contact-block').innerHTML =
+        contactLines.map(l => `<span>${l}</span>`).join('');
 
     // Build items rows
     const fenceTypeLabel = document.getElementById('fence-type').selectedOptions[0]?.text || 'Fence';
-    const rows = [];
+    const rows = state.segments.map((seg, i) => `
+        <tr>
+            <td>${fenceTypeLabel} — Section ${i + 1}</td>
+            <td>${Math.round(seg.lengthFt)} lin. ft</td>
+            <td>${formatCurrency(pricing.perFoot)} / ft</td>
+            <td>${formatCurrency(seg.lengthFt * pricing.perFoot)}</td>
+        </tr>
+    `);
 
-    state.segments.forEach((seg, i) => {
-        rows.push(`
-            <tr>
-                <td>${fenceTypeLabel} — Section ${i + 1}</td>
-                <td>${Math.round(seg.lengthFt)} lin. ft</td>
-                <td>${formatCurrency(pricing.perFoot)} / ft</td>
-                <td>${formatCurrency(seg.lengthFt * pricing.perFoot)}</td>
-            </tr>
-        `);
-    });
+    if (singleCount > 0) rows.push(`
+        <tr>
+            <td>Single Gate (installed, ~4 ft wide)</td>
+            <td>${singleCount} gate${singleCount > 1 ? 's' : ''}</td>
+            <td>${formatCurrency(pricing.singleGate)} ea.</td>
+            <td>${formatCurrency(singleCount * pricing.singleGate)}</td>
+        </tr>
+    `);
 
-    if (singleCount > 0) {
-        rows.push(`
-            <tr>
-                <td>Single Gate (installed, ~4 ft wide)</td>
-                <td>${singleCount} gate${singleCount > 1 ? 's' : ''}</td>
-                <td>${formatCurrency(pricing.singleGate)} ea.</td>
-                <td>${formatCurrency(singleCount * pricing.singleGate)}</td>
-            </tr>
-        `);
-    }
-    if (doubleCount > 0) {
-        rows.push(`
-            <tr>
-                <td>Double Gate (installed, ~10 ft wide)</td>
-                <td>${doubleCount} gate${doubleCount > 1 ? 's' : ''}</td>
-                <td>${formatCurrency(pricing.doubleGate)} ea.</td>
-                <td>${formatCurrency(doubleCount * pricing.doubleGate)}</td>
-            </tr>
-        `);
-    }
+    if (doubleCount > 0) rows.push(`
+        <tr>
+            <td>Double Gate (installed, ~10 ft wide)</td>
+            <td>${doubleCount} gate${doubleCount > 1 ? 's' : ''}</td>
+            <td>${formatCurrency(pricing.doubleGate)} ea.</td>
+            <td>${formatCurrency(doubleCount * pricing.doubleGate)}</td>
+        </tr>
+    `);
 
     document.getElementById('pt-items-body').innerHTML = rows.join('');
     document.getElementById('pt-subtotal').textContent = formatCurrency(subtotal);
     document.getElementById('pt-total').textContent    = formatCurrency(total);
 
-    // Tax row
     const taxRow = document.getElementById('pt-tax-row');
     if (pricing.taxRate > 0) {
         taxRow.classList.add('visible');
@@ -550,47 +618,47 @@ function printEstimate() {
         taxRow.classList.remove('visible');
     }
 
-    // Notes
-    const notesVal = document.getElementById('notes-input').value.trim();
-    const notesSection = document.getElementById('pt-notes-section');
-    if (notesVal) {
-        notesSection.classList.remove('hidden');
-        document.getElementById('pt-notes-text').textContent = notesVal;
-    } else {
-        notesSection.classList.add('hidden');
-    }
+    const notesVal      = document.getElementById('notes-input').value.trim();
+    const notesSection  = document.getElementById('pt-notes-section');
+    document.getElementById('pt-notes-text').textContent = notesVal;
+    notesSection.classList.toggle('hidden', !notesVal);
 
     window.print();
 }
 
 // ──────────────────────────────────────────
-// SETTINGS PERSISTENCE
+// LOCAL SETTINGS PERSISTENCE
 // ──────────────────────────────────────────
-function saveSettings() {
+function saveLocalSettings() {
     try {
-        const data = {
-            fenceType:    document.getElementById('fence-type').value,
-            perFoot:      document.getElementById('price-per-foot').value,
-            singleGate:   document.getElementById('price-single-gate').value,
-            doubleGate:   document.getElementById('price-double-gate').value,
-            taxRate:      document.getElementById('tax-rate').value,
-            companyName:  document.getElementById('company-name').value,
-        };
-        localStorage.setItem('fenceEstimatePro', JSON.stringify(data));
+        localStorage.setItem('fenceEstimatePro', JSON.stringify({
+            fenceType:   document.getElementById('fence-type').value,
+            perFoot:     document.getElementById('price-per-foot').value,
+            singleGate:  document.getElementById('price-single-gate').value,
+            doubleGate:  document.getElementById('price-double-gate').value,
+            taxRate:     document.getElementById('tax-rate').value,
+            companyName: document.getElementById('company-name').value,
+            notes:       document.getElementById('notes-input').value,
+        }));
     } catch (_) { /* storage unavailable */ }
 }
 
-function loadSettings() {
+function loadLocalSettings() {
     try {
         const raw = localStorage.getItem('fenceEstimatePro');
         if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.fenceType)   document.getElementById('fence-type').value         = data.fenceType;
-        if (data.perFoot)     document.getElementById('price-per-foot').value      = data.perFoot;
-        if (data.singleGate)  document.getElementById('price-single-gate').value   = data.singleGate;
-        if (data.doubleGate)  document.getElementById('price-double-gate').value   = data.doubleGate;
-        if (data.taxRate)     document.getElementById('tax-rate').value             = data.taxRate;
-        if (data.companyName) document.getElementById('company-name').value         = data.companyName;
+        const d = JSON.parse(raw);
+        // Only restore if not locked by config
+        if (FENCE_CONFIG.allowPriceEdit) {
+            const setIfVal = (id, v) => { if (v != null && v !== '') document.getElementById(id).value = v; };
+            setIfVal('fence-type',         d.fenceType);
+            setIfVal('price-per-foot',     d.perFoot);
+            setIfVal('price-single-gate',  d.singleGate);
+            setIfVal('price-double-gate',  d.doubleGate);
+            setIfVal('tax-rate',           d.taxRate);
+        }
+        if (d.companyName) document.getElementById('company-name').value = d.companyName;
+        if (d.notes)       document.getElementById('notes-input').value  = d.notes;
     } catch (_) { /* corrupted storage */ }
 }
 
@@ -598,46 +666,36 @@ function loadSettings() {
 // UI LISTENERS
 // ──────────────────────────────────────────
 function setupUIListeners() {
-    // Drawing tools
     document.getElementById('btn-draw').addEventListener('click', () => setMode('draw'));
     document.getElementById('btn-gate').addEventListener('click', () => setMode('gate'));
     document.getElementById('btn-undo').addEventListener('click', undo);
     document.getElementById('btn-clear').addEventListener('click', clearAll);
-
-    // Print
     document.getElementById('btn-print').addEventListener('click', printEstimate);
-
-    // Locate
     document.getElementById('btn-locate').addEventListener('click', locateUser);
 
-    // Map type toggle
     document.getElementById('btn-map-type').addEventListener('click', () => {
         state.mapTypeRoad = !state.mapTypeRoad;
         state.map.setMapTypeId(state.mapTypeRoad ? 'roadmap' : 'hybrid');
-        document.getElementById('btn-map-type').textContent = state.mapTypeRoad ? 'Satellite' : 'Map';
-        document.getElementById('btn-map-type').classList.toggle('active', state.mapTypeRoad);
+        const btn = document.getElementById('btn-map-type');
+        btn.textContent = state.mapTypeRoad ? 'Satellite' : 'Map';
+        btn.classList.toggle('active', state.mapTypeRoad);
     });
 
-    // Sidebar toggle
     document.getElementById('sidebar-toggle').addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
-        const isCollapsed = sidebar.classList.toggle('collapsed');
-        document.getElementById('sidebar-toggle').textContent = isCollapsed ? '›' : '‹';
+        const collapsed = sidebar.classList.toggle('collapsed');
+        document.getElementById('sidebar-toggle').innerHTML = collapsed ? '&#8250;' : '&#8249;';
     });
 
-    // Fence type preset
     document.getElementById('fence-type').addEventListener('change', onFenceTypeChange);
 
-    // Pricing inputs → live recalculate
-    ['price-per-foot', 'price-single-gate', 'price-double-gate', 'tax-rate'].forEach((id) => {
+    ['price-per-foot','price-single-gate','price-double-gate','tax-rate'].forEach((id) => {
         document.getElementById(id).addEventListener('input', onPricingChange);
     });
 
-    // Company name save
-    document.getElementById('company-name').addEventListener('input', saveSettings);
-    document.getElementById('notes-input').addEventListener('input', saveSettings);
+    document.getElementById('company-name').addEventListener('input', saveLocalSettings);
+    document.getElementById('notes-input').addEventListener('input', saveLocalSettings);
 
-    // Address input blur → update stored address
     document.getElementById('address-input').addEventListener('change', () => {
         state.currentAddress = document.getElementById('address-input').value;
     });
@@ -645,10 +703,9 @@ function setupUIListeners() {
     // Gate modal
     document.querySelectorAll('.gate-option').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const type = btn.dataset.type;
             document.getElementById('gate-modal').classList.add('hidden');
             if (state.pendingGateLatLng) {
-                placeGate(state.pendingGateLatLng, type);
+                placeGate(state.pendingGateLatLng, btn.dataset.type);
                 state.pendingGateLatLng = null;
             }
         });
@@ -659,7 +716,6 @@ function setupUIListeners() {
         state.pendingGateLatLng = null;
     });
 
-    // Close modal on overlay click
     document.getElementById('gate-modal').addEventListener('click', (e) => {
         if (e.target === e.currentTarget) {
             document.getElementById('gate-modal').classList.add('hidden');
@@ -669,8 +725,8 @@ function setupUIListeners() {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
         if (e.key === 'Escape') {
             setMode(null);
             document.getElementById('gate-modal').classList.add('hidden');
@@ -678,6 +734,14 @@ function setupUIListeners() {
         if (e.key === 'd' || e.key === 'D') setMode('draw');
         if (e.key === 'g' || e.key === 'G') setMode('gate');
     });
+}
+
+// ──────────────────────────────────────────
+// SIDEBAR EXPAND (for collapsed state)
+// ──────────────────────────────────────────
+function expandSidebar() {
+    document.getElementById('sidebar').classList.remove('collapsed');
+    document.getElementById('sidebar-toggle').innerHTML = '&#8249;';
 }
 
 // ──────────────────────────────────────────
