@@ -242,6 +242,7 @@ function updateDrawingBarCount() {
         const ft = computeLengthFtFromPoints(state.drawingPoints);
         bar.textContent = `${n} points — ${Math.round(ft)} ft so far`;
     }
+    document.getElementById('btn-undo-point').style.display    = n >= 1 ? '' : 'none';
     document.getElementById('btn-finish-section').style.display = n >= 2 ? '' : 'none';
 }
 
@@ -288,6 +289,24 @@ function onMapTapForDraw(event) {
                 repeat: '14px',
             }],
         });
+    }
+
+    updateDrawingBarCount();
+}
+
+function undoLastPoint() {
+    if (!state.drawingPoints.length) return;
+    state.drawingPoints.pop();
+
+    // Remove last dot marker
+    const dot = state.drawingDots.pop();
+    if (dot) dot.setMap(null);
+
+    // Update or remove preview polyline
+    if (state.drawingPoints.length < 1) {
+        if (state.drawingPolyline) { state.drawingPolyline.setMap(null); state.drawingPolyline = null; }
+    } else if (state.drawingPolyline) {
+        state.drawingPolyline.setPath(state.drawingPoints);
     }
 
     updateDrawingBarCount();
@@ -765,6 +784,7 @@ function setupUIListeners() {
     document.getElementById('btn-print').addEventListener('click', printEstimate);
     document.getElementById('btn-locate').addEventListener('click', locateUser);
 
+    document.getElementById('btn-undo-point').addEventListener('click', undoLastPoint);
     document.getElementById('btn-finish-section').addEventListener('click', finishSection);
     document.getElementById('btn-cancel-drawing').addEventListener('click', () => setMode(null));
 

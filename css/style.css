@@ -594,6 +594,21 @@ html, body {
 }
 .btn-finish:hover { background: var(--green-dark); }
 
+.btn-undo-point {
+    padding: 9px 14px;
+    background: rgba(251,146,60,.25);
+    color: #fed7aa;
+    border: 1px solid rgba(251,146,60,.4);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+    min-height: 40px;
+    touch-action: manipulation;
+}
+.btn-undo-point:hover { background: rgba(251,146,60,.4); }
+
 .btn-cancel-draw {
     padding: 9px 14px;
     background: rgba(255,255,255,.15);
