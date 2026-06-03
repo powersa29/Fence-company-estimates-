@@ -547,10 +547,22 @@ function renderSegmentsList() {
     el.innerHTML = state.segments.map(seg => `
         <div class="item-row">
             <div class="item-number">${seg.id}</div>
-            <div class="item-label">Section ${seg.id}<span>Fence section</span></div>
-            <div class="item-value">${Math.round(seg.lengthFt)} ft</div>
+            <div class="item-label">Section ${seg.id}<span>tap footage to adjust</span></div>
+            <div class="footage-edit">
+                <input type="number" class="footage-input" value="${Math.round(seg.lengthFt)}"
+                       min="0" step="1" oninput="updateSegmentLength(${seg.id}, this.value)"
+                       title="Tap to edit footage" aria-label="Section ${seg.id} footage in feet" />
+                <span class="footage-unit">ft</span>
+            </div>
             <button class="item-delete" onclick="removeSegment(${seg.id})" aria-label="Remove">&times;</button>
         </div>`).join('');
+}
+
+function updateSegmentLength(id, value) {
+    const seg = state.segments.find(s => s.id === id);
+    if (!seg) return;
+    seg.lengthFt = parseFloat(value) || 0;
+    renderTotals();
 }
 
 // ──────────────────────────────────────────

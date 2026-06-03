@@ -411,6 +411,40 @@ html, body {
     white-space: nowrap;
 }
 
+.footage-edit {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.footage-input {
+    width: 58px;
+    border: none;
+    border-bottom: 2px dashed var(--gray-300);
+    border-radius: 0;
+    padding: 2px 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-800);
+    background: transparent;
+    text-align: right;
+    -moz-appearance: textfield;
+}
+.footage-input::-webkit-inner-spin-button,
+.footage-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.footage-input:focus {
+    outline: none;
+    border-bottom-color: var(--blue);
+    background: #eff6ff;
+    border-radius: 4px 4px 0 0;
+}
+
+.footage-unit {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
 .item-delete {
     background: none;
     border: none;
