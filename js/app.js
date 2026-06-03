@@ -483,6 +483,12 @@ function removeGate(id) {
 }
 
 function undo() {
+    // While drawing: remove the last placed point
+    if (state.mode === 'draw' && state.drawingPoints.length > 0) {
+        undoLastPoint();
+        return;
+    }
+    // Otherwise: remove the last completed segment or gate
     if (!state.actionHistory.length) return;
     const last = state.actionHistory[state.actionHistory.length - 1];
     if (last.kind === 'segment') removeSegment(last.id);
